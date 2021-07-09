@@ -1,0 +1,10 @@
+spec:
+  ports:
+  - name: netbios-ss
+    port: 139
+    targetPort: netbios-ss
+  - name: microsoft-ds
+    port: 445
+    targetPort: microsoft-ds
+  selector: {{ selector }}
+  type: LoadBalancer

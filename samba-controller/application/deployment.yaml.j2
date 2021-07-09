@@ -1,0 +1,38 @@
+spec:
+  selector:
+    matchLabels: {{ selector }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels: {{ selector }}
+    spec:
+      containers:
+      - args:
+{%- for o in spec['shares'] %}
+        - "-s"
+        - "{{ o['share'] }};{{ ['/data', o['share']] | path_join }};yes;yes;yes;all;none;none;{{ o['share'] }}"
+{%- endfor %}
+        image: docker.io/dperson/samba:latest
+        imagePullPolicy: IfNotPresent
+        name: samba
+        ports:
+        - containerPort: 139
+          name: netbios-ss
+        - containerPort: 445
+          name: microsoft-ds
+        volumeMounts:
+{%- for o in spec['shares'] %}
+        - mountPath: {{ ['/data', o['share']] | path_join }}
+          name: {{ o['data']['claimName'] }}
+          readOnly: true
+          subPath: {{ o['subPath'] }}
+{%- endfor %}
+      serviceAccount: {{ application_serviceaccount['metadata']['name'] }}
+      serviceAccountName: {{ application_serviceaccount['metadata']['name'] }}
+      volumes:
+{%- for o in spec['shares'] | map(attribute='data') | map(attribute='claimName') | unique %}
+      - name: {{ o }}
+        persistentVolumeClaim:
+          claimName: {{ o }}
+{%- endfor %}

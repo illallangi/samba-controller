@@ -1,0 +1,63 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: sambas.controllers.illallangi.enterprises
+spec:
+  group: controllers.illallangi.enterprises
+  names:
+    kind: Samba
+    plural: sambas
+    singular: samba
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Age of the instance
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: The Domain Name to host the instance under
+      jsonPath: .spec.domainName
+      name: DomainName
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          spec:
+            properties:
+              shares:
+                items:
+                  properties:
+                    data:
+                      properties:
+                        claimName:
+                          type: string
+                        subPath:
+                          default: ''
+                          type: string
+                      required:
+                      - claimName
+                      type: object
+                    share:
+                      type: string
+                  required:
+                  - data
+                  - share
+                  type: object
+                type: array
+              domainName:
+                type: string
+            required:
+            - shares
+            - domainName
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+
