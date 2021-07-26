@@ -9,10 +9,29 @@ spec:
     spec:
       containers:
       - args:
+        # Disable recycle bin
+        - "-r"
+        # Set permissions for created files and folders
+        - "-G"
+        - "global;force create mode=0644"
+        - "-G"
+        - "global;create mask=0644"
+        - "-G"
+        - "global;force directory mode=0755"
+        - "-G"
+        - "global;directory mask=0755"
 {%- for o in spec['shares'] %}
+        # "<name;/path>[;browse;readonly;guest;users;admins;writelist;comment]"
         - "-s"
-        - "{{ o['share'] }};{{ ['/data', o['share']] | path_join }};yes;yes;yes;all;none;none;{{ o['share'] }}"
+        - "{{ o['share'] }};{{ ['/data', o['share']] | path_join }};yes;no;yes;all;none;none;{{ o['share'] }}"
 {%- endfor %}
+        env:
+        - name: TZ
+          value: "Australia/Melbourne"
+        - name: USERID
+          value: "1061"
+        - name: GROUPID
+          value: "1061"
         image: docker.io/dperson/samba:latest
         imagePullPolicy: IfNotPresent
         name: samba
@@ -25,8 +44,24 @@ spec:
 {%- for o in spec['shares'] %}
         - mountPath: {{ ['/data', o['share']] | path_join }}
           name: {{ o['data']['claimName'] }}
-          readOnly: true
-          subPath: {{ o['subPath'] }}
+          subPath: {{ o['data']['subPath'] }}
+{%- endfor %}
+      initContainers:
+{%- for o in spec['shares'] %}
+      - env:
+        - name: PERM_UID
+          value: "1061"
+        - name: PERM_GID
+          value: "1061"
+        name: init-{{ o['data']['claimName'] }}-fixperms
+        image: docker.io/illallangi/toolbx:v0.32.0
+        command:
+        - fixperms.sh
+        - /mnt
+        volumeMounts:
+        - mountPath: /mnt
+          name: {{ o['data']['claimName'] }}
+          subPath: {{ o['data']['subPath'] }}
 {%- endfor %}
       serviceAccount: {{ application_serviceaccount['metadata']['name'] }}
       serviceAccountName: {{ application_serviceaccount['metadata']['name'] }}
